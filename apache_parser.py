@@ -1,6 +1,8 @@
-import re, operator
+import re
+import operator
 from optparse import OptionParser
 from operator import itemgetter
+from search import search_geoip
 
 def restrict(lst, cutoff, count):
     'Restrict the list by minimum value or count.'
@@ -10,21 +12,26 @@ def restrict(lst, cutoff, count):
         lst = lst[:count]
     return lst
 
+
 def parse(filename):
     'Return tuple of dictionaries containing file data.'
+
     def make_entry(x):
-        return { 
-            'server_ip':x.group('ip'),
-            'uri':x.group('uri'),
-            'time':x.group('time'),
-            'status_code':x.group('status_code'),
-            'referral':x.group('referral'),
-            'agent':x.group('agent'),
-            }
+        return {
+            'client_geo_info': search_geoip(x.group('ip')),
+            'client_ip': x.group('ip'),
+            'uri': x.group('uri'),
+            'time': x.group('time'),
+            'status_code': x.group('status_code'),
+            'referral': x.group('referral'),
+            'agent': x.group('agent'),
+        }
+
     log_re = '(?P<ip>[.:0-9a-fA-F]+) - - \[(?P<time>.*?)\] "GET (?P<uri>.*?) HTTP/1.\d" (?P<status_code>\d+) \d+ "(?P<referral>.*?)" "(?P<agent>.*?)"'
     search = re.compile(log_re).search
     matches = (search(line) for line in file(filename))
     return (make_entry(x) for x in matches if x)
+
 
 def count_value(lst, key):
     d = {}
@@ -36,17 +43,24 @@ def count_value(lst, key):
             d[val] = 1
     return d.iteritems()
 
+
 def print_results(lst):
     for item in lst:
         print "%50s %10s" % (item[0], item[1])
 
+
 def generic_report_for_key(key, filename, cutoff, quantity):
     'Handles creating generic reports.'
     entries = parse(filename)
-    lst = count_value(entries, key)
-    lst = sorted(lst, key=itemgetter(1), reverse=True)
-    lst =  restrict(lst, cutoff, quantity)
-    print_results(lst)
+    if key is 'full':
+        for e in entries:
+            print e
+    else:
+        lst = count_value(entries, key)
+        lst = sorted(lst, key=itemgetter(1), reverse=True)
+        lst = restrict(lst, cutoff, quantity)
+        print_results(lst)
+
 
 def subscriptions(filename, cutoff, quantity):
     'Creates a custom report for determining number of subscribers per feed.'
@@ -84,9 +98,9 @@ def subscriptions(filename, cutoff, quantity):
                         sources[name] = count
                 else:
                     sources[name] = count
-        
+
         # sum subscription totals
-        vals = ( val for key,val in sources.iteritems())
+        vals = (val for key, val in sources.iteritems())
         sum = reduce(operator.add, vals, 0)
 
         # there can be false positives with weird user agents,
@@ -98,15 +112,19 @@ def subscriptions(filename, cutoff, quantity):
     results = sorted(results, key=itemgetter(1), reverse=True)
     results = restrict(results, cutoff, quantity)
     print_results(results)
-    
+
+
 def main():
-    p = OptionParser("usage: parser.py file uri|time|status_code|agent|referral|subscriptions")
-    p.add_option('-c','--cutoff',dest='cutoff',
+    p = OptionParser("usage: parser.py file raw|client_ip|uri|time|status_code|agent|referral|subscriptions")
+
+    p.add_option('-c', '--cutoff', dest='cutoff',
                  help="CUTOFF for minimum hits",
                  metavar="CUTOFF")
-    p.add_option('-q','--quantity',dest='quantity',
+
+    p.add_option('-q', '--quantity', dest='quantity',
                  help="QUANTITY of results to return",
                  metavar="QUANTITY")
+
     (options, args) = p.parse_args()
     if len(args) < 1:
         p.error("must specify a file to parse")
@@ -117,10 +135,10 @@ def main():
     report_type = args[1]
     cutoff = int(options.cutoff) if options.cutoff else None
     qty = int(options.quantity) if options.quantity else None
-    
+
     if report_type == 'subscriptions':
         subscriptions(filename, cutoff=cutoff, quantity=qty)
-    elif report_type in ['uri','time','status_code','agent','referral']:
+    elif report_type in ['full', 'client_ip', 'uri','time','status_code','agent','referral']:
         generic_report_for_key(report_type, filename, cutoff, qty)
     else:
         p.error("specified an invalid report type")
