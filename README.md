@@ -5,7 +5,7 @@ The original can be found at the end of this document. All credits to the origin
 
 At this time it supports generating reports for:
 
-* **client_ip** - client ip count (added)
+* **client_ip** - client ip count (new)
 * **uri** - pageviews for each uri
 * **time** - datetime with highest request/second
 * **status_code** - hits for each http status code
@@ -16,28 +16,29 @@ At this time it supports generating reports for:
 
 In addition to the above, I've added GeoIP resolution and a JSON report
 
-* **full** - all lines parsed as json (added)
+* **full** - all lines parsed as json (new)
 
 ## Before using it
 
-    Run python updatedb to fetch and compile the GeoIP db.
+    $ python updatedb.py (fetch and compile the GeoIP db - GeoLite Free from MaxMind)
 
 ## Usage
 
 Here are some example uses:
 
-    python apache_parser.py access.log subscriptions
-    python apache_parser.py access.log uri --quantity 5
-    python apache_parser.py access.log agent --cutoff 100
+    $ python apache_parser.py access.log subscriptions
+    $ python apache_parser.py access.log uri --quantity 5
+    $ python apache_parser.py access.log agent --cutoff 100
     
     to test the full json report:
 
-    python apache_parser.py access.log agent full | pbcopy
-    then paste it on (http://jsonlint.com)
+    $ python apache_parser.py access.log agent full | pbcopy 
+    
+    paste it on (http://jsonlint.com)
 
 There is help available at the command-line as well.
 
-    python apache_parser.py --help
+    $ python apache_parser.py --help
 
 ## Full report
 

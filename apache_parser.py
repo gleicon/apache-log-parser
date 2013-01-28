@@ -138,7 +138,7 @@ def subscriptions(filename, cutoff, quantity):
 
 
 def main():
-    p = OptionParser("usage: parser.py file raw|client_ip|uri|time|status_code|agent|referral|subscriptions")
+    p = OptionParser("usage: parser.py file full|client_ip|uri|time|status_code|agent|referral|subscriptions")
 
     p.add_option('-c', '--cutoff', dest='cutoff',
                  help="CUTOFF for minimum hits",
