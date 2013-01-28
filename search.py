@@ -86,4 +86,4 @@ if __name__ == "__main__":
         print "usage: search ip"
         sys.exit(1)
 
-    print search(ip)
+    print search_geoip(ip)

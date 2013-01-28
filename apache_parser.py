@@ -1,8 +1,12 @@
 import re
 import operator
+import json
 from optparse import OptionParser
 from operator import itemgetter
 from search import search_geoip
+
+REPORT_TYPES = ['client_ip', 'uri','time','status_code','agent','referral']
+
 
 def restrict(lst, cutoff, count):
     'Restrict the list by minimum value or count.'
@@ -29,8 +33,10 @@ def parse(filename):
 
     log_re = '(?P<ip>[.:0-9a-fA-F]+) - - \[(?P<time>.*?)\] "GET (?P<uri>.*?) HTTP/1.\d" (?P<status_code>\d+) \d+ "(?P<referral>.*?)" "(?P<agent>.*?)"'
     search = re.compile(log_re).search
-    matches = (search(line) for line in file(filename))
-    return (make_entry(x) for x in matches if x)
+    lines = [line for line in file(filename)]
+    llen = len(lines)
+    matches = (search(line) for line in lines)
+    return [llen, (make_entry(x) for x in matches if x)]
 
 
 def count_value(lst, key):
@@ -41,7 +47,7 @@ def count_value(lst, key):
             d[val] = d[val] + 1
         else:
             d[val] = 1
-    return d.iteritems()
+    return d
 
 
 def print_results(lst):
@@ -49,17 +55,34 @@ def print_results(lst):
         print "%50s %10s" % (item[0], item[1])
 
 
+def count_and_sort(entries, key):
+    lst = count_value(entries, key)
+    lst = sorted(lst.iteritems(), key=itemgetter(1), reverse=True)
+    return lst
+
+
+def full_report(filename, cutoff, quantity):
+    report = {}
+    llen, entries = parse(filename)
+    lst = list(entries)
+    report['total_lines'] = llen
+    report['lines_matched'] = len(lst)
+
+    for r in REPORT_TYPES:
+        d = count_value(lst, r)
+        #d = dict([(i[0], i[1]) for i in l])
+        report[r] = d
+
+    report['lines'] = lst
+    print json.dumps(report)
+
+
 def generic_report_for_key(key, filename, cutoff, quantity):
     'Handles creating generic reports.'
-    entries = parse(filename)
-    if key is 'full':
-        for e in entries:
-            print e
-    else:
-        lst = count_value(entries, key)
-        lst = sorted(lst, key=itemgetter(1), reverse=True)
-        lst = restrict(lst, cutoff, quantity)
-        print_results(lst)
+    llen, entries = parse(filename)
+    lst = count_and_sort(entries, key)
+    lst = restrict(lst, cutoff, quantity)
+    print_results(lst)
 
 
 def subscriptions(filename, cutoff, quantity):
@@ -138,7 +161,9 @@ def main():
 
     if report_type == 'subscriptions':
         subscriptions(filename, cutoff=cutoff, quantity=qty)
-    elif report_type in ['full', 'client_ip', 'uri','time','status_code','agent','referral']:
+    elif report_type == 'full':
+        full_report(filename, cutoff, qty)
+    elif report_type in REPORT_TYPES:
         generic_report_for_key(report_type, filename, cutoff, qty)
     else:
         p.error("specified an invalid report type")

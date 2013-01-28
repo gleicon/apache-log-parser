@@ -18,6 +18,10 @@ In addition to the above, I've added GeoIP resolution and a JSON report
 
 * **full** - all lines parsed as json (added)
 
+## Before using it
+
+    Run python updatedb to fetch and compile the GeoIP db.
+
 ## Usage
 
 Here are some example uses:
@@ -26,10 +30,21 @@ Here are some example uses:
     python apache_parser.py access.log uri --quantity 5
     python apache_parser.py access.log agent --cutoff 100
     
+    to test the full json report:
+
+    python apache_parser.py access.log agent full | pbcopy
+    then paste it on (http://jsonlint.com)
+
 There is help available at the command-line as well.
 
     python apache_parser.py --help
 
+## Full report
+
+    Apart from an array of hashes, each hash meaning a log line with geoip resolution, there's an item for each count report (client_ip, uri, time, status_code< referral, agent and subscriptions), lines_matched and total_lines.
+    
+## TODO
+    Work on the regexp to avoid non-matches
 
 ## User agents successfully parsed for feed subscribers
 
@@ -49,6 +64,8 @@ the feed subscription system:
 
 
 ## Credits
+
+* updatedb.py and search.py are (c) Alex Fiori
 
 This script draws inspiration and code from:
 
